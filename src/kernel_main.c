@@ -7,9 +7,18 @@ unsigned long get_timer_count() {
         return *timer_count_register;
     }
 
+void wait_1ms() {
+    unsigned long start_time = get_timer_count();
+    while ((get_timer_count() - start_time) < 1000) {
+	// Waiting... 
+    }
+}
+
 void kernel_main() {
 
-    get_timer_count();
+    unsigned long before = get_timer_count();
+    wait_1ms();
+    unsigned long after = get_timer_count();
 
     extern int __bss_start, __bss_end;
     char *bssstart, *bssend;
