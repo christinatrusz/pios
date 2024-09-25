@@ -112,6 +112,18 @@ maincore:
 //    msr     vbar_el1, x2
 //    msr     vbar_el2, x2
 
+    // change execution level to EL1
+    mov     x2, #0x3c4 // Change execution level to EL1
+//    mov     x2, #0x3c0   // Change execution level to EL0
+    msr     spsr_el2, x2
+    adr     x2, 5f  /* Put the address of the instruction at label 5 (below) into register X2 */
+    msr     elr_el2, x2
+    eret
+
+5:  mov     sp, x1
+
+// CALL kernel_main after this...
+
 // Returns current execution level
 .global get_current_el
 get_current_el:
