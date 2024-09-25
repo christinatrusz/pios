@@ -1,4 +1,7 @@
-
+#include "list.h"
+//#include <stdef.h>
+#include "rprintf.h"
+#include "serial.h"
 
 char glbl[128];
 
@@ -14,14 +17,27 @@ void wait_1ms() {
     }
 }
 
+
+int get_current_el() {
+    unsigned int el;
+    asm("mrs %0, CurrentEL"
+     : "=r"(el)
+     :
+     :);
+    return el>>2;
+}
+
 void kernel_main() {
 
+    
     unsigned long before = get_timer_count();
     wait_1ms();
     unsigned long after = get_timer_count();
 
     extern int __bss_start, __bss_end;
     char *bssstart, *bssend;
+    
+    esp_printf( my_putc, "Current Execution Level is %d\r\n", get_current_el());
 
     bssstart = &__bss_start;
     bssend = &__bss_end;

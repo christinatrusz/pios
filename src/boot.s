@@ -124,10 +124,4 @@ maincore:
 
 // CALL kernel_main after this...
 
-// Returns current execution level
-.global get_current_el
-get_current_el:
-    mrs x0, CurrentEL
-    ret
-
 

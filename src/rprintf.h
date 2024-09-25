@@ -6,7 +6,7 @@
 //#include <string.h>
 #include <stdarg.h>
 
-typedef unsigned int  size_t;
+typedef long unsigned int  size_t;
 
 #define NULL (void*)0
 
