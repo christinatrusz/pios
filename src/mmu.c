@@ -80,6 +80,7 @@ void mmu_on() {
     // Load the page table to enable MMU
     if (loadPageTable(L1table) != 0) {
         // Handle error if page table loading fails
+	printf("Error loading page table\n");
     }
 }
 
