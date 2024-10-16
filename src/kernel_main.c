@@ -2,6 +2,7 @@
 //#include <stdef.h>
 #include "rprintf.h"
 #include "serial.h"
+#include "mmu.h"
 
 char glbl[128];
 
@@ -46,6 +47,9 @@ void kernel_main() {
     for(char *p = bssstart; p < bssend; p++) {
 	*p = 0; //Sets each byte to zero
     }
+
+    // Call mmu_on to enable the MMU
+    mmu_on();
 
     while(1){
     }
