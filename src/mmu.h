@@ -1,3 +1,6 @@
+#ifndef __MMU_H__
+#define __MMU_H__
+
 // L1 table structure
 struct table_descriptor_stage1 {
     unsigned int type             :2; // Least significant bits
@@ -42,3 +45,5 @@ struct page_descriptor_stage1 {
 
 void mapPages(void *vaddr, void *paddr);
 int loadPageTable(struct table_descriptor_stage1 *L1table);
+
+#endif

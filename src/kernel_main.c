@@ -4,6 +4,8 @@
 #include "serial.h"
 #include "mmu.h"
 
+extern struct table_descriptor_stage1 L1table[]; 
+
 char glbl[128];
 
 unsigned long get_timer_count() {
