@@ -38,6 +38,10 @@ void kernel_main() {
     extern int __bss_start, __bss_end;
     char *bssstart, *bssend;
     
+    // Homework 7 page mapping 
+    mapPages((void*)0x0, (void*)0x0);
+    int result = loadPageTable(L1table);
+
     esp_printf( my_putc, "Current Execution Level is %d\r\n", get_current_el());
 
     bssstart = &__bss_start;
@@ -47,9 +51,6 @@ void kernel_main() {
     for(char *p = bssstart; p < bssend; p++) {
 	*p = 0; //Sets each byte to zero
     }
-
-    // Call mmu_on to enable the MMU
-    mmu_on();
 
     while(1){
     }

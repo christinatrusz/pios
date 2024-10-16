@@ -68,19 +68,4 @@ int loadPageTable(struct table_descriptor_stage1 *L1table) {
     return 0;
 }
 
-/*
- * mmu_on
- *
- * Translates the assembly function to C and sets up MMU.
- */
-void mmu_on() {
-    // Identity map the first 2MB of memory
-    mapPages((void *)0x00000000, (void *)0x00000000);
-    
-    // Load the page table to enable MMU
-    if (loadPageTable(L1table) != 0) {
-        // Handle error if page table loading fails
-	printf("Error loading page table\n");
-    }
-}
 
