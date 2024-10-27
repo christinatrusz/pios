@@ -1,5 +1,6 @@
 #include "list.h"
-//#include <stdef.h>
+#include <stddef.h>
+#include <stdio.h>
 #include "rprintf.h"
 #include "serial.h"
 #include "mmu.h"
@@ -10,7 +11,10 @@
 
 extern struct table_descriptor_stage1 L1table[]; 
 
+#define BUFFER_SIZE CLUSTER_SIZE  // Use CLUSTER_SIZE as BUFFER_SIZE
+
 char glbl[128];
+char buffer[BUFFER_SIZE]; // Buffer for file reading
 
 // Updated for sd.c
 void wait_msec(int ms) {

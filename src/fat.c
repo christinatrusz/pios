@@ -1,83 +1,91 @@
 #include "fat.h"
 #include <ctype.h> // For toupper
-#include <stdio.h> // For printf
+#include <string.h> // For strcmp and strncpy
 
-// Global variable to hold the Root Directory Entry (RDE) of the currently opened file
-struct rde current_rde;
+// Global variables for the FAT file system driver
+struct boot_sector *bs;
+char bootSector[512];
+char fat_table[8 * 512]; // Adjust size based on filesystem
+unsigned int root_sector;
+struct root_directory_entry current_rde; // Holds the RDE of the currently opened file
 
-// FatInit
+// fatInit: Initializes the FAT filesystem by reading the boot sector and FAT
 int fatInit() {
-    // Read sector 0 from the disk drive into bootSector array
+    // Read the boot sector (sector 0) into bootSector array
     sd_readblock(0, bootSector, 1);  
-    // Point boot_sector struct to the boot sector so we can read fields
     bs = (struct boot_sector*) bootSector;  
-    // Print out the elements of the BIOS information block (use rprintf or similar)
-    // Example: print bytes per sector
-    rprintf("Bytes per sector: %d\n", bs->bytes_per_sector);
+
     // Validate the boot signature = 0xaa55
     if (bs->boot_signature != 0xaa55) {
-        rprintf("Invalid boot signature!\n");
-        return -1;  // Error
+        return -1;  // Invalid boot signature
     }
+
     // Validate fs_type = "FAT12" using strcmp
     if (strcmp(bs->fs_type, "FAT12") != 0) {
-        rprintf("Invalid filesystem type. Expected FAT12.\n");
-        return -1;  // Error
+        return -1;  // Invalid filesystem type
     }
-    // Read FAT table from the SD card into array fat_table
-    int fatStartSector = bs->num_reserved_sectors;  // FAT starts after reserved sectors
-    sd_readblock(fatStartSector, fat_table, bs->num_sectors_per_fat);  // Read FAT
-    // Compute root_sector
+
+    // Read FAT table from the SD card into fat_table array
+    int fatStartSector = bs->num_reserved_sectors;
+    sd_readblock(fatStartSector, fat_table, bs->num_sectors_per_fat); 
+
+    // Compute root sector
     root_sector = bs->num_fat_tables * bs->num_sectors_per_fat 
                   + bs->num_reserved_sectors 
                   + bs->num_hidden_sectors;
+
     return 0;
 }
 
-// FatOpen
+// fatOpen: Opens a file by locating its root directory entry (RDE)
 int fatOpen(const char *filename) {
-    char uppercase_filename[12];
+    // Convert filename to uppercase for comparison
+    char uppercase_filename[12] = {0};
     int i;
     for (i = 0; i < 11 && filename[i] != '\0'; i++) {
         uppercase_filename[i] = toupper(filename[i]);
     }
-    uppercase_filename[i] = '\0';
-    // Load root directory sector into memory
+
+    // Load the root directory sector into memory
     char root_dir_sector[512];
     sd_readblock(root_sector, root_dir_sector, 1);
+
     // Search for the file in the root directory
-    struct rde *entry = (struct rde *)root_dir_sector;
+    struct root_directory_entry *entry = (struct root_directory_entry *)root_dir_sector;
     for (i = 0; i < bs->num_root_dir_entries; i++, entry++) {
-        if (strncmp(entry->name, uppercase_filename, 11) == 0) {
+        if (strncmp(entry->file_name, uppercase_filename, 11) == 0) {
             // File found: save RDE information
             current_rde = *entry;
-            printf("File %s opened, starting at cluster %d\n", filename, current_rde.first_cluster);
-            return 0;
+            return 0;  // File found
         }
     }
-    printf("File %s not found in root directory.\n", filename);
-    return -1;
+
+    return -1;  // File not found
 }
 
-// FatRead
-int fatRead(FileDescriptor *fd, char *buffer, int size) {
-    // Total bytes read from the file
-    int bytesRead = 0;
-    // Start reading from the file's starting cluster
-    int currentCluster = fd->startCluster;
-    // Loop until the requested number of bytes is read or the end of the FAT chain is reached
-    while (bytesRead < size && currentCluster < END_OF_CHAIN) {
-        int bytesToRead = (size - bytesRead < CLUSTER_SIZE) ? size - bytesRead : CLUSTER_SIZE;
-        // Read data from the current cluster into the buffer
-        readCluster(currentCluster, buffer + bytesRead, bytesToRead);
-        
-        bytesRead += bytesToRead;
-        // Move to the next cluster using the FAT table
-        currentCluster = fatTable[currentCluster];
-        // Check if the next cluster indicates the end of the file or an error
-        if (currentCluster >= END_OF_CHAIN) break;
+// fatRead: Reads data from the opened file into the buffer
+int fatRead(char *buffer, int bytes_to_read) {
+    if (current_rde.file_size < bytes_to_read) {
+        bytes_to_read = current_rde.file_size;  // Adjust bytes to read if file is smaller
     }
-    // Return the total number of bytes read
-    return bytesRead;
+
+    int cluster = current_rde.cluster;
+    int bytes_read = 0;
+
+    // Read each cluster until all requested bytes are read
+    while (bytes_to_read > 0) {
+        int sector = root_sector + (cluster - 2) * bs->num_sectors_per_cluster;
+        sd_readblock(sector, buffer + bytes_read, bs->num_sectors_per_cluster);
+
+        bytes_read += bs->bytes_per_sector * bs->num_sectors_per_cluster;
+        bytes_to_read -= bs->bytes_per_sector * bs->num_sectors_per_cluster;
+
+        // Get the next cluster from the FAT
+        int fat_entry = fat_table[cluster];  // Modify based on FAT indexing
+        if (fat_entry >= 0xFF8) break;  // End of file
+        cluster = fat_entry;
+    }
+
+    return bytes_read;
 }
 
