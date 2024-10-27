@@ -3,23 +3,22 @@
 #include "rprintf.h"
 #include "serial.h"
 #include "mmu.h"
+#include "fat.h"
+#include "delays.h"
+#include "sd.h"
+
 
 extern struct table_descriptor_stage1 L1table[]; 
 
 char glbl[128];
 
-unsigned long get_timer_count() {
-        unsigned long *timer_count_register = 0x3f003004;
-        return *timer_count_register;
-    }
-
-void wait_1ms() {
-    unsigned long start_time = get_timer_count();
-    while ((get_timer_count() - start_time) < 1000) {
-	// Waiting... 
+// Updated for sd.c
+void wait_msec(int ms) {
+    volatile int count; 
+    for (int i = 0; i < ms; i++) {
+        for (count = 0; count < 1000; count++);
     }
 }
-
 
 int get_current_el() {
     unsigned int el;
@@ -32,10 +31,30 @@ int get_current_el() {
 
 void kernel_main() {
 
-    
-    unsigned long before = get_timer_count();
-    wait_1ms();
-    unsigned long after = get_timer_count();
+   // Homework 8: FAT Filesystem Driver
+
+   // Initialize the FAT filesystem
+    if (fatInit() != 0) {
+        // Handle error in initialization
+        rprintf("FAT Initialization Failed\n");
+        return -1;
+    }
+
+    // Open a file 
+    int file_descriptor = fatOpen("/BIN/BASH");
+    if (file_descriptor < 0) {
+        // Handle error in opening the file
+        rprintf("Failed to open file: %d\n", file_descriptor);
+        return -1;
+    }
+
+    // Read the file contents into the buffer
+    int bytes_read = fatRead(file_descriptor, buffer, BUFFER_SIZE);
+    if (bytes_read < 0) {
+        // Handle error in reading the file
+        rprintf("Failed to read file: %d\n", bytes_read);
+        return -1;
+    }
 
     extern int __bss_start, __bss_end;
     char *bssstart, *bssend;
