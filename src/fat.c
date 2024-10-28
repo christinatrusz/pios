@@ -1,6 +1,7 @@
 #include "fat.h"
 #include <ctype.h> // For toupper
 #include <string.h> // For strcmp and strncpy
+#include "sd.h"
 
 // Global variables for the FAT file system driver
 struct boot_sector *bs;

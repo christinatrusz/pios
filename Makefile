@@ -21,6 +21,7 @@ OBJS = \
 	page.o \
 	mmu.o \
 	fat.o \
+	sd.o \	
 
 OBJ = $(patsubst %,$(ODIR)/%,$(OBJS))
 
