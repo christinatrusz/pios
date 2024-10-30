@@ -8,21 +8,9 @@
 #include "delays.h"
 #include "sd.h"
 
-
 extern struct table_descriptor_stage1 L1table[]; 
 
-#define BUFFER_SIZE CLUSTER_SIZE  // Use CLUSTER_SIZE as BUFFER_SIZE
-
 char glbl[128];
-char buffer[BUFFER_SIZE]; // Buffer for file reading
-
-// Updated for sd.c
-void wait_msec(int ms) {
-    volatile int count; 
-    for (int i = 0; i < ms; i++) {
-        for (count = 0; count < 1000; count++);
-    }
-}
 
 int get_current_el() {
     unsigned int el;
@@ -33,36 +21,71 @@ int get_current_el() {
     return el>>2;
 }
 
+void *memcpy(void *dest, const void *src, size_t n) {
+    char *d = dest;
+    const char *s = src;
+    while (n--) {
+	*d++ = *s++;
+    }
+    return dest;
+}
+
+int strncmp(const char *s1, const char *s2, size_t n) {
+    while (n-- > 0) {
+	if (*s1 != *s2) {
+	    return *(unsigned char *)s1 - *(unsigned char *)s2;
+	}
+	if (*s1 == '\0') {
+	    break;
+	}
+	s1++;
+	s2++;
+    }
+    return 0;
+}
+
 void kernel_main() {
-
-   // Homework 8: FAT Filesystem Driver
-
-   // Initialize the FAT filesystem
-    if (fatInit() != 0) {
-        // Handle error in initialization
-        rprintf("FAT Initialization Failed\n");
-        return -1;
-    }
-
-    // Open a file 
-    int file_descriptor = fatOpen("/BIN/BASH");
-    if (file_descriptor < 0) {
-        // Handle error in opening the file
-        rprintf("Failed to open file: %d\n", file_descriptor);
-        return -1;
-    }
-
-    // Read the file contents into the buffer
-    int bytes_read = fatRead(file_descriptor, buffer, BUFFER_SIZE);
-    if (bytes_read < 0) {
-        // Handle error in reading the file
-        rprintf("Failed to read file: %d\n", bytes_read);
-        return -1;
-    }
+    get_timer_count();
+    wait_msec(1000);
 
     extern int __bss_start, __bss_end;
     char *bssstart, *bssend;
     
+    // Homework 8: FAT FS
+
+    // Initialize SD
+    if(sd_init() != SD_OK) {
+        esp_printf(my_putc, "Failed to initialize SD card\n");
+	return -1;
+    }
+
+    // Initialize FAT fs 
+    if(fatInit() != 0) {
+	esp_printf(my_putc, "Failed to initialize FAT filesystem\n");
+	return -1;
+    }
+
+    // Open the file
+    struct file *file_handle = fatOpen("mnt/disk/test.txt");
+    if(file_handle == NULL) {
+	esp_printf(my_putc, "Failed to open file\n");
+	return -1
+    }
+
+    // Read the contents into buffer
+    uint8_t buffer[CLUSTER_SIZE];
+    int bytes_read = fatRead(file_handle, buffer, sizeof(buffer));
+    if(bytes_read < 0) {
+	esp_printf(my_put.c, "Failed to read file data\n");
+	return -1;
+    }
+
+    esp_printf(my_putc, "Read %d bytes from %s:\n", bytes_read, file_handle->rde.file_name);
+    for(int i = 0; i < bytes_read; i++) {
+	esp_printf(my_putc, "%c ", buffer[i]);
+    }
+    esp_printf(my_putc, "\n");
+
     // Homework 7 page mapping 
     mapPages((void*)0x0, (void*)0x0);
     int result = loadPageTable(L1table);
