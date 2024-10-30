@@ -22,7 +22,7 @@ int fatInit() {
     }
 
     // Validate fs_type = "FAT12" using strcmp
-    if (strcmp(bs->fs_type, "FAT12") != 0) {
+    if (strncmp(bs->fs_type, "FAT12", 5) != 0) {
         return -1;  // Invalid filesystem type
     }
 
@@ -40,16 +40,26 @@ int fatInit() {
 
 // fatOpen: Opens a file by locating its root directory entry (RDE)
 int fatOpen(const char *filename) {
-    // Convert filename to uppercase for comparison
+    // Convert filename to uppercase for comparison, space-padded to 11 chars
     char uppercase_filename[12] = {0};
     int i;
     for (i = 0; i < 11 && filename[i] != '\0'; i++) {
-        uppercase_filename[i] = toupper(filename[i]);
+        if (filename[i] >= 'a' && filename[i] <= 'z') {
+            uppercase_filename[i] = filename[i] - ('a' - 'A');
+        } else {
+            uppercase_filename[i] = filename[i];
+        }
+    }
+    // Pad with spaces if filename is shorter than 11 characters
+    for (; i < 11; i++) {
+        uppercase_filename[i] = ' ';
     }
 
     // Load the root directory sector into memory
     char root_dir_sector[512];
-    sd_readblock(root_sector, root_dir_sector, 1);
+    if (sd_readblock(root_sector, root_dir_sector, 1) != 0) {
+        return -1;  // Error reading the sector
+    }
 
     // Search for the file in the root directory
     struct root_directory_entry *entry = (struct root_directory_entry *)root_dir_sector;
@@ -63,6 +73,7 @@ int fatOpen(const char *filename) {
 
     return -1;  // File not found
 }
+  
 
 // fatRead: Reads data from the opened file into the buffer
 int fatRead(char *buffer, int bytes_to_read) {

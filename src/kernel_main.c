@@ -45,8 +45,6 @@ int strncmp(const char *s1, const char *s2, size_t n) {
 }
 
 void kernel_main() {
-    get_timer_count();
-    wait_msec(1000);
 
     extern int __bss_start, __bss_end;
     char *bssstart, *bssend;
@@ -66,7 +64,7 @@ void kernel_main() {
     }
 
     // Open the file
-    struct file *file_handle = fatOpen("mnt/disk/test.txt");
+    struct file *file_handle = fatOpen("mnt/disk/test");
     if(file_handle == NULL) {
 	esp_printf(my_putc, "Failed to open file\n");
 	return -1;
