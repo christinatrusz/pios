@@ -69,14 +69,14 @@ void kernel_main() {
     struct file *file_handle = fatOpen("mnt/disk/test.txt");
     if(file_handle == NULL) {
 	esp_printf(my_putc, "Failed to open file\n");
-	return -1
+	return -1;
     }
 
     // Read the contents into buffer
     uint8_t buffer[CLUSTER_SIZE];
     int bytes_read = fatRead(file_handle, buffer, sizeof(buffer));
     if(bytes_read < 0) {
-	esp_printf(my_put.c, "Failed to read file data\n");
+	esp_printf(my_putc, "Failed to read file data\n");
 	return -1;
     }
 
